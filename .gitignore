@@ -13,4 +13,5 @@ __pycache__/
 lib/
 bin/
 .pytest_cache
+*.lua
 
