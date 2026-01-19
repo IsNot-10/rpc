@@ -1,0 +1,16 @@
+build/
+*.log
+*.conf
+*.csv
+*.txt
+!CMakeLists.txt
+__pycache__/
+.vscode/
+.DS_Store
+*.so
+*.a
+*.o
+lib/
+bin/
+.pytest_cache
+

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package mprpc;
+
+
+// Rpc请求的元数据头部
+// 作用：解决TCP粘包问题，让服务端知道如何解析后续的业务数据
+// 
+// 整个Rpc请求的二进制流格式通常为：
+// [4字节 header_size] + [header_size字节 RpcHeader] + [args_size字节 serialized_args]
+message RpcHeader
+{
+    bytes service_name=1; // 服务名，如 "UserService"
+    bytes method_name=2;  // 方法名，如 "Login"
+    uint32 args_size=3;   // 参数数据的长度
+    map<string, string> meta_data = 4; // 额外的元数据（如 HTTP Headers, TraceID）
+};

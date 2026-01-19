@@ -1,0 +1,142 @@
+//声明了protobuf的版本
+syntax = "proto3";
+
+
+//生成的所有类均在这个namespace下
+package fixbug;
+
+
+//表示生成rpc服务类和rpc方法描述(默认是不生成的)
+option cc_generic_services=true;
+
+
+
+message ResultCode
+{
+    int32 errcode=1;
+    bytes errmsg=2;
+};
+
+
+
+
+//经过protobuf的反射会生成LoginRequest类(继承google::protobuf::Message类)
+//内部也提供了name和pwd的各种设置和获取方法
+message LoginRequest
+{
+    bytes name=1;
+    bytes pwd=2;
+};
+
+
+message LoginResponse
+{
+    ResultCode result=1;
+    bool success=2;
+};
+
+
+message RegisterRequest
+{
+    uint32 id=1;
+    bytes name=2;
+    bytes pwd=3;
+};
+
+
+message RegisterResponse
+{
+    ResultCode result=1;
+    bool success=2;
+};
+
+
+
+
+
+
+
+//在protobuf中定义如何描述一个服务中的rpc方法的类型
+//经过protobuf的反射,会生成一个叫UserServiceRpc类,(继承goole::protobuf
+//::Service类).同时也生成一个继承UserServiceRpc类的UserServiceRpc_stub类
+
+//类定义和成员函数声明如下(为了方便理解有些地方我简化和省略了)
+/*
+class UserServiceRpc
+:public Service 
+{
+protected:
+  inline UserServiceRpc(){};
+
+public:
+  virtual ~UserServiceRpc();
+
+  virtual void Login(RpcController* controller,
+            const fixbug::LoginRequest* request,
+            fixbug::LoginResponse* response,
+            google::protobuf::Closure* done);
+  
+  virtual void Register(RpcController* controller,
+            const ::fixbug::RegisterRequest* request,
+            fixbug::RegisterResponse* response,
+            google::protobuf::Closure* done);
+
+  const ServiceDescriptor* GetDescriptor();
+
+  void CallMethod(const MethodDescriptor* method,
+                RpcController* controller,
+                const Message* request,
+                Message* response,
+                google::protobuf::Closure* done);
+
+  const Message& GetRequestPrototype(const MethodDescriptor* method)const;
+  
+  const Message& GetResponsePrototype(const MethodDescriptor* method) const;
+};
+
+
+
+class UserServiceRpc_Stub 
+:public UserServiceRpc 
+{
+public:
+  UserServiceRpc_Stub(RpcChannel* channel);
+  ~UserServiceRpc_Stub();
+  inline RpcChannel* channel() { return channel_; }
+
+  void Login(RpcController* controller,
+                const fixbug::LoginRequest* request,
+                fixbug::LoginResponse* response,
+                google::protobuf::Closure* done);
+  
+  void Register(RpcController* controller,
+                const fixbug::RegisterRequest* request,
+                fixbug::RegisterResponse* response,
+                google::protobuf::Closure* done);
+
+private:
+  RpcChannel* channel_;
+};
+
+
+最后也展示一下RpcChannel类
+
+class RpcChannel 
+{
+public:
+  inline RpcChannel(){}
+  virtual ~RpcChannel();
+  virtual void CallMethod(const MethodDescriptor* method,
+            RpcController* controller,const Message* request,
+            Message* response,Closure* done)=0;
+};
+
+*/
+
+
+
+service UserServiceRpc
+{
+    rpc Login(LoginRequest) returns (LoginResponse);
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+};
