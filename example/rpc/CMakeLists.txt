@@ -60,4 +60,5 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # 加载example子目录
 add_subdirectory(example)
+add_subdirectory(tests)
 

@@ -4,9 +4,7 @@
 #include <iostream>
 
 namespace ha {
-
 namespace {
-    // Configuration constants (adapted from BRPC defaults)
     const int SHORT_WINDOW_SIZE = 1500;
     const int LONG_WINDOW_SIZE = 3000;
     const int SHORT_WINDOW_ERROR_PERCENT = 10;
@@ -22,6 +20,10 @@ EmaErrorRecorder::EmaErrorRecorder(int window_size, int max_error_percent)
     : window_size_(window_size)
     , max_error_percent_(max_error_percent)
     , smooth_(std::pow(EPSILON_VALUE, 1.0 / window_size))
+    , sample_count_when_initializing_(0)
+    , error_count_when_initializing_(0)
+    , ema_error_cost_(0)
+    , ema_latency_(0)
 {
 }
 
@@ -33,11 +35,12 @@ bool EmaErrorRecorder::on_call_end(int error_code, int64_t latency) {
         ema_latency = update_latency(latency);
         healthy = update_error_cost(0, ema_latency);
     } else {
-        ema_latency = ema_latency_.load(std::memory_order_relaxed);
-        healthy = update_error_cost(latency, ema_latency);
-    }
+            ema_latency = ema_latency_.load(std::memory_order_relaxed);
+            // Debug
+            // std::cout << "DEBUG: on_call_end error. latency=" << latency << ", ema_latency=" << ema_latency << std::endl;
+            healthy = update_error_cost(latency, ema_latency);
+        }
 
-    // Initialization phase
     if (sample_count_when_initializing_.load(std::memory_order_relaxed) < window_size_) {
         int32_t count = sample_count_when_initializing_.fetch_add(1, std::memory_order_relaxed);
         if (count < window_size_) {
@@ -62,8 +65,10 @@ void EmaErrorRecorder::reset() {
 }
 
 double EmaErrorRecorder::get_error_rate() const {
-    // Approximate error rate for display
-    return 0.0; // Not easily calculable from EMA cost/latency without more state
+    int64_t latency = ema_latency_.load(std::memory_order_relaxed);
+    if (latency == 0) return 0.0;
+    int64_t cost = ema_error_cost_.load(std::memory_order_relaxed);
+    return (double)cost / (latency * window_size_);
 }
 
 int64_t EmaErrorRecorder::update_latency(int64_t latency) {
@@ -83,11 +88,9 @@ int64_t EmaErrorRecorder::update_latency(int64_t latency) {
 
 bool EmaErrorRecorder::update_error_cost(int64_t error_cost, int64_t ema_latency) {
     if (ema_latency != 0) {
-        // Cap the error cost
         error_cost = std::min(ema_latency * MAX_FAILED_LATENCY_MULTIPLE, error_cost);
     }
 
-    // Error response
     if (error_cost != 0) {
         int64_t current_ema_error_cost = ema_error_cost_.fetch_add(error_cost, std::memory_order_relaxed);
         current_ema_error_cost += error_cost;
@@ -96,7 +99,6 @@ bool EmaErrorRecorder::update_error_cost(int64_t error_cost, int64_t ema_latency
         return current_ema_error_cost <= max_error_cost;
     }
 
-    // Success response
     int64_t ema_error_cost = ema_error_cost_.load(std::memory_order_relaxed);
     do {
         if (ema_error_cost == 0) break;
@@ -116,18 +118,20 @@ bool EmaErrorRecorder::update_error_cost(int64_t error_cost, int64_t ema_latency
     return true;
 }
 
-// CircuitBreakerNode Implementation
-
 CircuitBreakerNode::CircuitBreakerNode()
     : long_window_(LONG_WINDOW_SIZE, LONG_WINDOW_ERROR_PERCENT)
     , short_window_(SHORT_WINDOW_SIZE, SHORT_WINDOW_ERROR_PERCENT)
     , isolation_duration_ms_(MIN_ISOLATION_DURATION_MS)
 {
+    last_reset_time_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 bool CircuitBreakerNode::on_call_end(int error_code, int64_t latency) {
-    // If broken, return false (isolate)
     if (broken_.load(std::memory_order_relaxed)) {
+        if (error_code != 0) {
+            mark_as_broken();
+        }
         return false;
     }
 
@@ -138,6 +142,7 @@ bool CircuitBreakerNode::on_call_end(int error_code, int64_t latency) {
         return true;
     }
 
+    // std::cout << "DEBUG: Unhealthy! long=" << long_healthy << ", short=" << short_healthy << std::endl;
     mark_as_broken();
     return false;
 }
@@ -156,12 +161,21 @@ void CircuitBreakerNode::mark_as_broken() {
         isolated_times_.fetch_add(1, std::memory_order_relaxed);
         update_isolation_duration();
         
-        // Set broken_until time
         std::lock_guard<std::mutex> lock(mutex_);
         broken_until_ = std::chrono::steady_clock::now() + 
                        std::chrono::milliseconds(isolation_duration_ms_.load(std::memory_order_relaxed));
         
         LOG_WARN << "Node marked as BROKEN. Isolation duration: " << isolation_duration_ms_.load() << "ms";
+    } else {
+        // Check if this is a failed probe (broken_until_ has passed)
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto now = std::chrono::steady_clock::now();
+        if (now > broken_until_) {
+            update_isolation_duration();
+            broken_until_ = now + 
+                           std::chrono::milliseconds(isolation_duration_ms_.load(std::memory_order_relaxed));
+            LOG_WARN << "Probe FAILED. Extending isolation: " << isolation_duration_ms_.load() << "ms";
+        }
     }
 }
 
@@ -185,17 +199,14 @@ bool CircuitBreakerNode::is_available() {
         return true;
     }
     
-    // Check if isolation duration has passed (Half-Open)
     std::lock_guard<std::mutex> lock(mutex_);
     auto now = std::chrono::steady_clock::now();
     if (now > broken_until_) {
-        return true; // Allow probe
+        return true;
     }
     
     return false;
 }
-
-// CircuitBreaker Implementation
 
 CircuitBreaker& CircuitBreaker::instance() {
     static CircuitBreaker inst;
@@ -203,7 +214,6 @@ CircuitBreaker& CircuitBreaker::instance() {
 }
 
 std::shared_ptr<CircuitBreakerNode> CircuitBreaker::get_node(const std::string& host) {
-    // Fast path: read lock
     {
         std::shared_lock<std::shared_mutex> lock(mutex_);
         auto it = nodes_.find(host);
@@ -212,9 +222,7 @@ std::shared_ptr<CircuitBreakerNode> CircuitBreaker::get_node(const std::string& 
         }
     }
     
-    // Slow path: write lock
     std::unique_lock<std::shared_mutex> lock(mutex_);
-    // Double check
     auto it = nodes_.find(host);
     if (it != nodes_.end()) {
         return it->second;
@@ -234,24 +242,26 @@ void CircuitBreaker::report_status(const std::string& host, int error_code, int6
     auto node = get_node(host);
     int64_t latency_us = latency_ms * 1000;
     
-    // BRPC logic adaptation:
-    // If the node is broken, on_call_end returns false immediately.
-    // If we are in half-open state (broken but allowing 1 probe), and the probe succeeds:
-    // on_call_end will return false (because it's broken).
-    // But since it's a success, we should RECOVER (Reset).
-    
     bool healthy = node->on_call_end(error_code, latency_us);
     
     if (error_code == 0) {
         if (!healthy) {
-            // Node is broken, but this request succeeded.
-            // This means it was a successful probe.
+            // Success but unhealthy stats? Reset to give it a chance or keep it open?
+            // Actually if it succeeds, we should probably mark it as healthy or let EMA handle it
+            // For now, if a probe succeeds, we reset the circuit breaker
+            if (!node->is_available()) {
+                 LOG_INFO << "CircuitBreaker: Probe SUCCEEDED. Recovering host " << host;
+            }
             node->reset();
-            LOG_INFO << "CircuitBreaker: Host " << host << " RECOVERED (Probe Success).";
+        }
+    } else {
+        if (!healthy) {
+             if (node->is_available()) {
+                 LOG_WARN << "CircuitBreaker: Health check failed for " << host;
+             }
+             node->mark_as_broken();
         }
     }
-    // If failure, and !healthy, it means we are broken (or just broke).
-    // We stay broken.
 }
 
 void CircuitBreaker::report_status(const std::string& host, bool success, int64_t latency_ms) {
@@ -259,7 +269,6 @@ void CircuitBreaker::report_status(const std::string& host, bool success, int64_
 }
 
 double CircuitBreaker::get_latency(const std::string& host) {
-    // Not implemented in EmaErrorRecorder port yet
     return -1.0;
 }
 

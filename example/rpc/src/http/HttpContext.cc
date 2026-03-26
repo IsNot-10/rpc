@@ -142,15 +142,10 @@ bool HttpContext::parseRequest(Buffer* buf,TimeStamp receiveTime)
                     const std::string& lenStr = request_.getHeader("Content-Length");
                     if (!lenStr.empty())
                     {
-                        try {
-                            contentLength_ = std::stoul(lenStr);
-                            if (contentLength_ > 0) {
-                                state_ = HttpRequestParseState::kExpectBody;
-                            } else {
-                                state_ = HttpRequestParseState::kGotAll;
-                                hasMore = false;
-                            }
-                        } catch (...) {
+                        contentLength_ = std::strtoul(lenStr.c_str(), nullptr, 10);
+                        if (contentLength_ > 0) {
+                            state_ = HttpRequestParseState::kExpectBody;
+                        } else {
                             state_ = HttpRequestParseState::kGotAll;
                             hasMore = false;
                         }

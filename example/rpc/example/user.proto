@@ -24,8 +24,8 @@ message ResultCode
 //内部也提供了name和pwd的各种设置和获取方法
 message LoginRequest
 {
-    bytes name=1;
-    bytes pwd=2;
+    string name=1;
+    string pwd=2;
 };
 
 
@@ -39,8 +39,8 @@ message LoginResponse
 message RegisterRequest
 {
     uint32 id=1;
-    bytes name=2;
-    bytes pwd=3;
+    string name=2;
+    string pwd=3;
 };
 
 

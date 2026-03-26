@@ -50,54 +50,50 @@ void RegistryServer::onConnection(const TcpConnectionPtr& conn)
 // 心跳: HB|127.0.0.1:8000
 void RegistryServer::onMessage(const TcpConnectionPtr& conn, Buffer* buf, TimeStamp time)
 {
-    // 获取缓冲区所有数据
+    // Retrieve all data
     std::string msg = buf->retrieveAllAsString();
     
-    // 注意：在生产环境中，TCP是流式传输，需要处理粘包/拆包问题（如使用 LengthFieldBasedFrameDecoder）
-    // 这里为了演示简单，假设每次收到的是一条完整消息，或者以换行符分隔
-    
     std::stringstream ss(msg);
-    std::string segment;
-    std::vector<std::string> parts;
+    std::string line;
     
-    // 使用 '|' 分割字符串
-    while(std::getline(ss, segment, '|'))
-    {
-        // 去除可能存在的换行符
-        if (!segment.empty() && segment.back() == '\n') {
-            segment.pop_back();
+    // Process line by line
+    while(std::getline(ss, line)) {
+        if (line.empty()) continue;
+        if (line.back() == '\r') line.pop_back(); // Handle CRLF
+        
+        std::stringstream ls(line);
+        std::string segment;
+        std::vector<std::string> parts;
+        
+        while(std::getline(ls, segment, '|')) {
+            parts.push_back(segment);
         }
-        parts.push_back(segment);
-    }
-    
-    if (parts.empty()) return;
-    
-    std::string cmd = parts[0];
-    
-    std::lock_guard<std::mutex> lock(mutex_); // 加锁保护共享数据 serviceMap_
-    
-    if (cmd == "REG" && parts.size() >= 4) {
-        // 注册请求: REG|service|method|ip:port|weight
-        std::string key = parts[1] + "/" + parts[2]; // Key = Service/Method
-        int weight = 1;
-        if (parts.size() >= 5) {
-            try {
-                weight = std::stoi(parts[4]);
-            } catch(...) {
-                weight = 1;
+        
+        if (parts.empty()) continue;
+        
+        std::string cmd = parts[0];
+        
+        std::lock_guard<std::mutex> lock(mutex_); 
+        
+        if (cmd == "REG" && parts.size() >= 4) {
+            std::string key = parts[1] + "/" + parts[2];
+            int weight = 1;
+            if (parts.size() >= 5) {
+                try {
+                    weight = std::stoi(parts[4]);
+                } catch(...) {
+                    weight = 1;
+                }
             }
+            handleRegister(key, "", parts[3], weight);
+            conn->send("ACK\n"); 
         }
-        handleRegister(key, "", parts[3], weight);
-        conn->send("ACK\n"); // 发送确认
-    }
-    else if (cmd == "DIS" && parts.size() >= 3) {
-        // 发现请求: DIS|service|method
-        std::string key = parts[1] + "/" + parts[2];
-        handleDiscovery(conn, parts[1], parts[2]);
-    }
-    else if (cmd == "HB" && parts.size() >= 2) {
-        // 心跳请求: HB|ip:port
-        handleHeartbeat(parts[1]);
+        else if (cmd == "DIS" && parts.size() >= 3) {
+            handleDiscovery(conn, parts[1], parts[2]);
+        }
+        else if (cmd == "HB" && parts.size() >= 2) {
+            handleHeartbeat(parts[1]);
+        }
     }
 }
 

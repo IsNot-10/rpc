@@ -216,8 +216,9 @@ int main(int argc, char* argv[]) {
     MpRpcApplication::getInstance().Init(argc, argv);
     
     // 初始化 Proto 导入器 (指向存放 .proto 文件的目录)
-    // 假设 .proto 文件在 ../../rpc/protos
-    RpcUtils::Init("/home/abab/muduo-x/mymuduo/example/rpc/protos");
+    const char* proto_path_env = std::getenv("PROTO_PATH");
+    std::string proto_path = proto_path_env ? proto_path_env : "/home/abab/muduo-x/rpc/example/rpc/protos";
+    RpcUtils::Init(proto_path);
 
     std::string portStr = MpRpcApplication::getInstance().Load("gateway_port");
     uint16_t port = portStr.empty() ? 8080 : std::stoi(portStr);

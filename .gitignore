@@ -1,17 +1,42 @@
+# Build
 build/
-*.log
-*.conf
-*.csv
-*.txt
-!CMakeLists.txt
-__pycache__/
-.vscode/
-.DS_Store
-*.so
-*.a
+cmake-build-*/
 *.o
-lib/
-bin/
-.pytest_cache
-*.lua
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
 
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.clangd/
+compile_commands.json
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Protobuf
+*.pb.cc
+*.pb.h
+!RpcHeader.pb.*
+
+# Test
+Testing/
+CTestTestfile.cmake
+
+# Misc
+.DS_Store
+*.log
+*.tmp

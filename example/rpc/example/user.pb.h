@@ -361,7 +361,7 @@ class LoginRequest final :
     kNameFieldNumber = 1,
     kPwdFieldNumber = 2,
   };
-  // bytes name = 1;
+  // string name = 1;
   void clear_name();
   const std::string& name() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -375,7 +375,7 @@ class LoginRequest final :
   std::string* _internal_mutable_name();
   public:
 
-  // bytes pwd = 2;
+  // string pwd = 2;
   void clear_pwd();
   const std::string& pwd() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -699,7 +699,7 @@ class RegisterRequest final :
     kPwdFieldNumber = 3,
     kIdFieldNumber = 1,
   };
-  // bytes name = 2;
+  // string name = 2;
   void clear_name();
   const std::string& name() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -713,7 +713,7 @@ class RegisterRequest final :
   std::string* _internal_mutable_name();
   public:
 
-  // bytes pwd = 3;
+  // string pwd = 3;
   void clear_pwd();
   const std::string& pwd() const;
   template <typename ArgT0 = const std::string&, typename... ArgT>
@@ -1072,7 +1072,7 @@ inline void ResultCode::set_allocated_errmsg(std::string* errmsg) {
 
 // LoginRequest
 
-// bytes name = 1;
+// string name = 1;
 inline void LoginRequest::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
@@ -1084,7 +1084,7 @@ template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void LoginRequest::set_name(ArgT0&& arg0, ArgT... args) {
  
- _impl_.name_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+ _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:fixbug.LoginRequest.name)
 }
 inline std::string* LoginRequest::mutable_name() {
@@ -1122,7 +1122,7 @@ inline void LoginRequest::set_allocated_name(std::string* name) {
   // @@protoc_insertion_point(field_set_allocated:fixbug.LoginRequest.name)
 }
 
-// bytes pwd = 2;
+// string pwd = 2;
 inline void LoginRequest::clear_pwd() {
   _impl_.pwd_.ClearToEmpty();
 }
@@ -1134,7 +1134,7 @@ template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void LoginRequest::set_pwd(ArgT0&& arg0, ArgT... args) {
  
- _impl_.pwd_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+ _impl_.pwd_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:fixbug.LoginRequest.pwd)
 }
 inline std::string* LoginRequest::mutable_pwd() {
@@ -1310,7 +1310,7 @@ inline void RegisterRequest::set_id(uint32_t value) {
   // @@protoc_insertion_point(field_set:fixbug.RegisterRequest.id)
 }
 
-// bytes name = 2;
+// string name = 2;
 inline void RegisterRequest::clear_name() {
   _impl_.name_.ClearToEmpty();
 }
@@ -1322,7 +1322,7 @@ template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void RegisterRequest::set_name(ArgT0&& arg0, ArgT... args) {
  
- _impl_.name_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+ _impl_.name_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:fixbug.RegisterRequest.name)
 }
 inline std::string* RegisterRequest::mutable_name() {
@@ -1360,7 +1360,7 @@ inline void RegisterRequest::set_allocated_name(std::string* name) {
   // @@protoc_insertion_point(field_set_allocated:fixbug.RegisterRequest.name)
 }
 
-// bytes pwd = 3;
+// string pwd = 3;
 inline void RegisterRequest::clear_pwd() {
   _impl_.pwd_.ClearToEmpty();
 }
@@ -1372,7 +1372,7 @@ template <typename ArgT0, typename... ArgT>
 inline PROTOBUF_ALWAYS_INLINE
 void RegisterRequest::set_pwd(ArgT0&& arg0, ArgT... args) {
  
- _impl_.pwd_.SetBytes(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+ _impl_.pwd_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
   // @@protoc_insertion_point(field_set:fixbug.RegisterRequest.pwd)
 }
 inline std::string* RegisterRequest::mutable_pwd() {

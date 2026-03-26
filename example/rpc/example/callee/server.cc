@@ -13,8 +13,8 @@ public:
     //做本地业务的函数
     bool Login(std::string_view name,std::string_view pwd)
     {
-        LOG_INFO<<"doing local service: Login";
-        LOG_INFO<<"name="<<name<<" ,pwd="<<pwd;
+        // LOG_INFO<<"doing local service: Login";
+        // LOG_INFO<<"name="<<name<<" ,pwd="<<pwd;
         
         // 模拟长尾延迟 (Backup Request 测试)
         if (name == "delay") {
@@ -88,7 +88,14 @@ int main(int argc,char* argv[])
     const char* log_level_env = std::getenv("LOG_LEVEL");
     if (log_level_env) {
         std::string level(log_level_env);
-        if (level == "TRACE") Logger::setLogLevel(Logger::LogLevel::TRACE);
+        if (level == "TRACE") {
+            Logger::setLogLevel(Logger::LogLevel::TRACE);
+            // Force flush for testing
+            Logger::setOutput([](const char* msg, int len){
+                fwrite(msg, 1, len, stdout);
+                fflush(stdout);
+            });
+        }
         else if (level == "DEBUG") Logger::setLogLevel(Logger::LogLevel::DEBUG);
         else if (level == "INFO") Logger::setLogLevel(Logger::LogLevel::INFO);
         else if (level == "WARN") Logger::setLogLevel(Logger::LogLevel::WARN);

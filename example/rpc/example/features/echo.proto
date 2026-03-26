@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package demo;
+
+option cc_generic_services = true;
+
+message EchoRequest {
+    string message = 1;
+    int32 sleep_us = 2; // 请求服务端休眠多少微秒，用于模拟延迟
+}
+
+message ResultCode {
+    int32 errcode = 1;
+    string errmsg = 2;
+}
+
+message EchoResponse {
+    string message = 1;
+    ResultCode result = 2;
+}
+
+service EchoService {
+    rpc Echo(EchoRequest) returns (EchoResponse);
+}
